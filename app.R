@@ -32,7 +32,9 @@ ui <- navbarPage(
   ),
   # Onglet "Visualisation des résultats"
   tabPanel("Visualisation des résultats",
-          p("Ici les résultats")
+           selectInput("operation", 
+                       "Sélectionner une opération", 
+                       choices=NULL)
   ),
   # Onglet "Charger les références"
   tabPanel("Charger les références",
@@ -95,17 +97,22 @@ server <- function(input, output) {
   
   # Réaction au clic sur le bouton "download_refs"
   observeEvent(input$download_refs, {
-    # Charger les données de référence
+    # Charger les données indices invertébrés depuis hubeau pour totues les stations de référence 
     stations_op<-tools4DCE::import_hubeau_indices_hbio(liste_stations=ref_staq_fr$Code.SANDRE.de.la.station, 
                                             indice="inv")
+    # on ne conserve que les I2M2
     stations_op<-stations_op%>%subset(CdParametre=="7613")
     
+    # pour chacune des stations de référence, on charge les listes faunistiques et on exécute le script SEEE / outil diag
     for(i in 1:length(ref_staq_fr$Code.SANDRE.de.la.station))
+    {
+          # import des listes faunistiques
+      donnees<-import_hubeau_liste_hbio(liste_stations = ref_staq_fr$Code.SANDRE.de.la.station[i], indice="inv")
     
-    donnees<-import_hubeau_liste_hbio(liste_stations = ref_staq_fr$Code.SANDRE.de.la.station, indice="inv")
+      # mise en forme des listes faunistiques
     donnees<-donnees%>%subset(date_prelevement%in%stations_op$DatePrel)
     donnees$CODE_OPERATION <-
-      paste0(donnees$code_station_hydrobio, "*", donnees$date_prelevement)
+      paste0(donnees$code_station_hydrobio, "*", gsub("//","_",donnees$date_prelevement))
     donnees$CODE_STATION <- donnees$code_station_hydrobio
     donnees$DATE <- format(donnees$date_prelevement, "%d/%m/%Y")
     donnees$TYPO_NATIONALE <- "P12-A"
@@ -114,10 +121,22 @@ server <- function(input, output) {
     donnees$RESULTAT <- donnees$resultat_taxon
     donnees$CODE_REMARQUE <- donnees$code_type_resultat
     donnees <- donnees %>% select(CODE_OPERATION, CODE_STATION, DATE, TYPO_NATIONALE, CODE_PHASE, CODE_TAXON, RESULTAT, CODE_REMARQUE)
+    
+    # Appel de l'outil diag du SEEE
     resultats_OD<-calcule_SEEE_ODinvertebres(donnees)
     
+    # agrégation des fichiers de résultat et des listes faunistiques
+    ifelse(i==1,
+      donneesout<-donnees,
+      donneesout<-rbind(donnees, donneesout))
+
+    ifelse(i==1,
+           ODout<-resultats_OD,
+           ODout<-rbind(resultats_OD, ODout))
+      }
     
-    
+    saveRDS(donneesout, "data/listes_fau_stations_ref.rds")   
+    saveRDS(ODout, "data/od_stations_ref.rds")
     
   })
 }
