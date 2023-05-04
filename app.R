@@ -38,6 +38,8 @@ graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
   # TBE : booléen, TRUE pour afficher les résultats des références en très bon état
   # dataI2M2, dataIBGN et dataOD : données calculées avec le SEEE pour les opérations à afficher
   
+  graph<-NULL
+  
   if(BE){
     # on ne conserve que les opérations dont l'I2M2 est bon état 
     oper_a_garder_BE<-ref_I2M2[ref_I2M2$CODE_PAR=="7613" & ref_I2M2$RESULTAT>=0.443,]$CODE_OPERATION
@@ -73,7 +75,7 @@ graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
                                 ordered=TRUE) 
     
     
-    ggplot(data_graph, aes(NomParametre, RESULTAT)) + 
+    graph<-ggplot(data_graph, aes(NomParametre, RESULTAT)) + 
       geom_violin(data=ref_I2M2_BE,aes(NomParametre, RESULTAT), fill="green")+ 
       geom_violin(data=ref_I2M2_TBE,aes(NomParametre, RESULTAT), fill="cyan")+ 
       geom_point() + 
@@ -127,21 +129,104 @@ graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
       facet_grid(lbl_date~NomParametre, scales = "free") + ylab("")
     
     
-    plot_grid(
+   graph<- plot_grid(
       g_IBG, g_vartax, g_gfi, nrow=1
     )
   
   }
   
   
+  # graph diag radar
+  if(type=="RADAR"){  
+  detail_outil_diag_inv<-dataOD
+  detail_outil_diag_inv$DATE<-as.Date(detail_outil_diag_inv$DATE, format("%d/%m/%Y"))
   
-# graph diag radar
+  # on retient les seuils de probabilité proposés par AQUABIO pour chacune des pressions
+  # https://www.researchgate.net/publication/350895873_Proposition_de_nouvelles_valeurs_guides_provisoires_et_niveaux_de_confiance_associes_pour_l'interpretation_de_l'outil_diagnostique_invertebres
+  #sur lecture rapport Labat 2021 (aquabio), on ne retient pas la probabilité d'altération
+  # Anthropisation BV car donne des résultats non pertinents.
+  # en cas de bornes faible / modéré et modéré / forte identiques, le choix a été fait de remplacer 
+  #l'une des deux bornes par 0,5 (ou 0,6 pour les nitrates et RISQUE_COLMATAGE)
   
+  
+  detail_outil_diag_inv$proba_MATIERES_ORGANIQUES<-cut(detail_outil_diag_inv$MATIERES_ORGANIQUES, 
+                                                       breaks=c(0,0.23,0.54,1), 
+                                                       labels=c("Faible", "Modérée", "Forte"))
+  
+  detail_outil_diag_inv$proba_MATIERES_PHOSPHOREES<-cut(detail_outil_diag_inv$MATIERES_PHOSPHOREES, 
+                                                        breaks=c(0,0.04,0.55,1), 
+                                                        labels=c("Faible", "Modérée", "Forte"))
+  
+  detail_outil_diag_inv$proba_MATIERES_AZOTEES<-cut(detail_outil_diag_inv$MATIERES_AZOTEES, 
+                                                    breaks=c(0,0.09,0.5,1), 
+                                                    labels=c("Faible", "Modérée", "Forte"))
+  
+  detail_outil_diag_inv$proba_NITRATES<-cut(detail_outil_diag_inv$NITRATES, 
+                                            breaks=c(0,0.5,0.6,1), 
+                                            labels=c("Faible", "Modérée", "Forte"))
+  
+  detail_outil_diag_inv$proba_PESTICIDES<-cut(detail_outil_diag_inv$PESTICIDES, 
+                                              breaks=c(0,0.5,0.8,1), 
+                                              labels=c("Faible", "Modérée", "Forte"))
+  
+  detail_outil_diag_inv$proba_HAP<-cut(detail_outil_diag_inv$HAP, 
+                                       breaks=c(0,0.5,0.56,1), 
+                                       labels=c("Faible", "Modérée", "Forte"))
+  
+  detail_outil_diag_inv$proba_RIPISYLVE<-cut(detail_outil_diag_inv$RIPISYLVE, 
+                                             breaks=c(0,0.5,0.61,1), 
+                                             labels=c("Faible", "Modérée", "Forte"))
+  
+  
+  detail_outil_diag_inv$proba_URBANISATION_100M<-cut(detail_outil_diag_inv$URBANISATION_100M, 
+                                                     breaks=c(0,0.28,0.55,1), 
+                                                     labels=c("Faible", "Modérée", "Forte"))
+  
+  detail_outil_diag_inv$proba_RISQUE_COLMATAGE<-cut(detail_outil_diag_inv$RISQUE_COLMATAGE, 
+                                                    breaks=c(0,0.48,0.60,1), 
+                                                    labels=c("Faible", "Modérée", "Forte"))
+  
+  detail_outil_diag_inv$proba_INSTABILITE_HYDROLOGIQUE<-cut(detail_outil_diag_inv$INSTABILITE_HYDROLOGIQUE, 
+                                                            breaks=c(0,0.4,0.59,1), 
+                                                            labels=c("Faible", "Modérée", "Forte"))
+  
+  
+  data_graph_all<-detail_outil_diag_inv%>%
+    dplyr::select(CODE_STATION, DATE, starts_with("proba_"))%>%
+    tidyr::pivot_longer(cols=dplyr::starts_with("proba_"),
+                        names_to="pression",
+                        values_to="proba")
+  
+  data_graph_all$pression<-gsub("proba_","", data_graph_all$pression)
+  
+  
+  #traitement de chaque station
+  # station_a_traiter<- unique(data_graph_all$CODE_STATION)[2]
+  
+  data_graph<-data_graph_all%>%
+    subset(CODE_STATION==station_a_traiter)
+  
+  
+  lbl_dates<-format(unique(data_graph$DATE), "%d/%m/%y")
+  data_graph$DATE<-as.Date(data_graph$DATE, format="%d/%m/%Y")
+  lbl_dates<-unique(paste(data_graph$CODE_STATION, format(data_graph$DATE, "%d/%m/%y")))
+  data_graph$lbl_date<-factor(paste(data_graph$CODE_STATION, format(data_graph$DATE, "%d/%m/%y")), 
+                              labels=lbl_dates,
+                              ordered=TRUE) 
+  
+  
+  
+  
+  # table(data_graph$pression,data_graph$proba)
+  graph<-ggplot(data_graph, aes(lbl_date, pression))+ 
+    geom_tile(aes(fill = proba)) + 
+    scale_fill_manual(values=c("Faible"="blue", "Modérée"="yellow", "Forte"="red"))+
+    xlab("") + ylab("") + ggtitle("Probabilité d'altération de l'I2M2")
 
-  
+  }
 # autres graphs  
   
-    
+    return(graph)
 }
 
 
@@ -193,6 +278,7 @@ ui <- navbarPage(
       choices = c(
         "I2M2",
         "IBGN",
+        "RADAR",
         "TRANSVERSAL",
         "SUBSTRAT",
         "COURANT",
