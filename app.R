@@ -5,6 +5,7 @@ library(devtools)
 install_github("https://github.com/AnthonyDEBUR/tools4DCE")
 library(tools4DCE)
 library(shinybusy)
+library(cowplot)
 
 # chargement de la liste des stations de référence de l'Armoricain
 ref_staq_fr <- read.csv2("data/referentiel_fr.csv")
@@ -66,8 +67,8 @@ graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
     data_graph<-dataI2M2%>%subset(CODE_PAR%in%param$CdParametre)
     data_graph<-left_join(data_graph, param, by=c("CODE_PAR"="CdParametre"))
     data_graph$DATE<-as.Date(data_graph$DATE, format="%d/%m/%Y")
-    lbl_dates<-format(unique(data_graph$DATE), "%d/%m/%y")
-    data_graph$lbl_date<-factor(data_graph$DATE, 
+    lbl_dates<-unique(paste(data_graph$CODE_STATION, format(data_graph$DATE, "%d/%m/%y")))
+    data_graph$lbl_date<-factor(paste(data_graph$CODE_STATION, format(data_graph$DATE, "%d/%m/%y")), 
                                 labels=lbl_dates,
                                 ordered=TRUE) 
     
@@ -90,24 +91,46 @@ graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
     
     ref_I2M2_BE<-ref_IBGN%>%subset(CODE_OPERATION%in%oper_a_garder_BE & CODE_PAR%in%param$CdParametre)
     ref_I2M2_BE<-left_join(ref_I2M2_BE, param, by=c("CODE_PAR"="CdParametre"))
-    ref_I2M2_TBE<-ref_I2M2%>%subset(CODE_OPERATION%in%oper_a_garder_TBE & CODE_PAR%in%param$CdParametre)
+    ref_I2M2_TBE<-ref_IBGN%>%subset(CODE_OPERATION%in%oper_a_garder_TBE & CODE_PAR%in%param$CdParametre)
     ref_I2M2_TBE<-left_join(ref_I2M2_TBE, param, by=c("CODE_PAR"="CdParametre"))
     
     data_graph<-dataIBG%>%subset(CODE_PAR%in%param$CdParametre)
     data_graph<-left_join(data_graph, param, by=c("CODE_PAR"="CdParametre"))
     data_graph$DATE<-as.Date(data_graph$DATE, format="%d/%m/%Y")
-    lbl_dates<-format(unique(data_graph$DATE), "%d/%m/%y")
-    data_graph$lbl_date<-factor(data_graph$DATE, 
+    lbl_dates<-unique(paste(data_graph$CODE_STATION, format(data_graph$DATE, "%d/%m/%y")))
+    data_graph$lbl_date<-factor(paste(data_graph$CODE_STATION, format(data_graph$DATE, "%d/%m/%y")), 
                                 labels=lbl_dates,
                                 ordered=TRUE) 
+    # graph IBG
+    g_IBG<-ggplot(data_graph%>%subset(CODE_PAR=="5910"), aes(NomParametre, RESULTAT)) + 
+      geom_violin(data=ref_I2M2_BE%>%subset(CODE_PAR=="5910"),aes(NomParametre, RESULTAT), fill="green")+ 
+      geom_violin(data=ref_I2M2_TBE%>%subset(CODE_PAR=="5910"),aes(NomParametre, RESULTAT), fill="cyan")+ 
+      geom_point()  + ylim(c(0,20)) + 
+      theme(axis.text.x = element_text(angle = 0)) + xlab("") +
+      facet_grid(lbl_date~NomParametre, scales = "free") + ylab("")
+    # graph Var taxo
+    
+    g_vartax<-ggplot(data_graph%>%subset(CODE_PAR=="6034"), aes(NomParametre, RESULTAT)) + 
+      geom_violin(data=ref_I2M2_BE%>%subset(CODE_PAR=="6034"),aes(NomParametre, RESULTAT), fill="green")+ 
+      geom_violin(data=ref_I2M2_TBE%>%subset(CODE_PAR=="6034"),aes(NomParametre, RESULTAT), fill="cyan")+ 
+      geom_point() + ylim(c(0,NA)) +
+      theme(axis.text.x = element_text(angle = 0)) + xlab("") +
+      facet_grid(lbl_date~NomParametre, scales = "free") + ylab("")
+    
+    # Graph GFI
+    
+    g_gfi<-ggplot(data_graph%>%subset(CODE_PAR=="6035"), aes(NomParametre, RESULTAT)) + 
+      geom_violin(data=ref_I2M2_BE%>%subset(CODE_PAR=="6035"), aes(NomParametre, RESULTAT), fill="green")+ 
+      geom_violin(data=ref_I2M2_TBE%>%subset(CODE_PAR=="6035"), aes(NomParametre, RESULTAT), fill="cyan")+ 
+      geom_point() + ylim(c(0,9)) +
+      theme(axis.text.x = element_text(angle = 0)) + xlab("") +
+      facet_grid(lbl_date~NomParametre, scales = "free") + ylab("")
     
     
-    ggplot(data_graph, aes(NomParametre, RESULTAT)) + 
-      geom_violin(data=ref_I2M2_BE,aes(NomParametre, RESULTAT), fill="green")+ 
-      geom_violin(data=ref_I2M2_TBE,aes(NomParametre, RESULTAT), fill="cyan")+ 
-      geom_point() + 
-      theme(axis.text.x = element_text(angle = 90)) + ylim(c(0,1)) + xlab("") +
-      facet_grid(lbl_date~.) + ylab("")  
+    plot_grid(
+      g_IBG, g_vartax, g_gfi, nrow=1
+    )
+  
   }
   
   
