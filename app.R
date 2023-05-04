@@ -24,21 +24,108 @@ ref_staq_fr <-
       )
   )
 
-# chargement des données de référence
+# chargement du dictionaire de données utilisé pour les graphs des traits écologiques
+dico_ODinv<-read.csv2("data/dictionnaire_outil_diag_minv.csv")
+dico_ODinv$TYPE<-sapply(strsplit(dico_ODinv$CODE_TAXON, split='_', fixed=TRUE), function(x) (x[1]))
+
+# chargement des données des stations de référence
 ref_listes_fau <<- readRDS("data/listes_fau_stations_ref.rds")
 ref_OD <<- readRDS("data/od_stations_ref.rds")
 ref_I2M2<<- readRDS("data/i2m2_stations_ref.rds")
 ref_IBGN<<- readRDS("data/ibgn_stations_ref.rds")
 
-# fonction graphique
+# fonctions graphiques
 
+# graphs de type traits écologiques
+graph_trait<-function(data_graph, 
+                      trait="TRANSVERSAL", 
+                      data_BE=detail_outil_diag_inv_reference_FR, 
+                      data_TBE=detail_outil_diag_inv_reference_FR_TBE
+)
+{
+  if(!"character"%in%class(trait)){stop("le paramètre trait doit être de type character")}
+  categories<-subset(dico_ODinv, TYPE==trait)
+  if(nrow(categories)==0){stop("le paramètre trait n'est pas défini dans le fichier dictionnaire_outil_diag_minv.csv")}
+  
+  data_graph$DATE<-as.Date(data_graph$DATE, format="%d/%m/%Y")
+  data_BE$DATE<-as.Date(data_BE$DATE, format="%d/%m/%Y")
+  data_TBE$DATE<-as.Date(data_TBE$DATE, format="%d/%m/%Y")
+  
+  # mise en forme données de la station
+  data_graph<-data_graph[c("CODE_STATION", "DATE", categories$CODE_TAXON)]
+  
+  lbl_dates<-unique(format(data_graph$DATE, "%d/%m/%y"))
+  data_graph$lbl_date<-factor(data_graph$DATE, 
+                              labels=lbl_dates,
+                              ordered=TRUE) 
+  
+  data_graph<- data_graph%>%
+    tidyr::pivot_longer(cols=starts_with(trait),
+                        names_to="metrique",
+                        values_to="num")%>%
+    left_join(categories, by=c("metrique"="CODE_TAXON"))
+  
+  
+  data_graph$num_classe<-substr(data_graph$metrique, 
+                                nchar(data_graph$metrique),
+                                nchar(data_graph$metrique))%>%as.numeric()
+  
+  # legende pour l'ensemble des catégories du jeu de données
+  ordre_legend<-data.frame(ordre=data_graph$num_classe, valeur=data_graph$LEGENDE)%>%unique
+  data_graph$LEGENDE<-factor(data_graph$LEGENDE, levels=ordre_legend$valeur)
+  
+  # mise en forme ensemble des données pour violons
+  data_BE<-data_BE[c("CODE_STATION", "DATE", categories$CODE_TAXON)]
+  
+  data_BE<- data_BE%>%
+    tidyr::pivot_longer(cols=starts_with(trait),
+                        names_to="metrique",
+                        values_to="num")%>%
+    left_join(categories, by=c("metrique"="CODE_TAXON"))
+  
+  
+  data_BE$num_classe<-substr(data_BE$metrique, 
+                             nchar(data_BE$metrique),
+                             nchar(data_BE$metrique))%>%as.numeric()
+  
+  ordre_legend<-data.frame(ordre=data_BE$num_classe, valeur=data_BE$LEGENDE)%>%unique
+  data_BE$LEGENDE<-factor(data_BE$LEGENDE, levels=ordre_legend$valeur)
+  
+  
+  # mise en forme ensemble des données TBE pour violons
+  data_TBE<-data_TBE[c("CODE_STATION", "DATE", categories$CODE_TAXON)]
+
+  data_TBE<- data_TBE%>%
+    tidyr::pivot_longer(cols=starts_with(trait),
+                        names_to="metrique",
+                        values_to="num")%>%
+    left_join(categories, by=c("metrique"="CODE_TAXON"))
+
+
+  data_TBE$num_classe<-substr(data_TBE$metrique,
+                             nchar(data_TBE$metrique),
+                             nchar(data_TBE$metrique))%>%as.numeric()
+
+  ordre_legend<-data.frame(ordre=data_TBE$num_classe, valeur=data_TBE$LEGENDE)%>%unique
+  data_TBE$LEGENDE<-factor(data_TBE$LEGENDE, levels=ordre_legend$valeur)
+  
+  # création du graph
+  return(ggplot(data_graph, aes(LEGENDE, 100*num)) +
+    geom_violin(data=data_BE,aes(LEGENDE, 100*num), fill="green")+
+    geom_violin(data=data_TBE,aes(LEGENDE, 100*num), fill="cyan")+
+    geom_point() + 
+    facet_grid(cols = vars(TYPE), row = vars(lbl_date)) +
+    theme(axis.text.x = element_text(angle = 90)) + ylim(c(0,NA)) + xlab("") + ylab("%")
+  )
+}  
+
+
+# pour tout type de graph
 graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
   # type = type de graph
   # BE : booléen, TRUE pour afficher les résultats des références en bon état
   # TBE : booléen, TRUE pour afficher les résultats des références en très bon état
   # dataI2M2, dataIBGN et dataOD : données calculées avec le SEEE pour les opérations à afficher
-  
-  graph<-NULL
   
   if(BE){
     # on ne conserve que les opérations dont l'I2M2 est bon état 
@@ -53,9 +140,17 @@ graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
     oper_a_garder_TBE<-oper_a_garder_TBE[!is.na(oper_a_garder_TBE)]%>%unique
     }else{oper_a_garder_TBE<-NULL}
   
-  
+  # si pas de données
+  if(nrow(dataOD)==0){
+    df <- data.frame(x = 1, y = 1, label = "Sélectionnez une ou plusieurs\nopérations puis cliquez\nsur Calculer les métriques.")
+    
+    # Création du graphique
+    graph<-ggplot(df, aes(x = x, y = y, label = label)) +
+      geom_text(size = 14) +
+      theme_void()
+  } 
   # graph I2M2
-  if(type=="I2M2"){
+    else if(type=="I2M2"){
     param<-data.frame(CdParametre=c("7613","8054", "8055", "8056", "8057", "8058"),
                       NomParametre=factor(c("I2M2","Rich. taxo", "Ovovivipar.", "Polyvolt.", "ASPT", "Shannon"), 
                                           levels=c("I2M2","Shannon", "Rich. taxo", "Ovovivipar.", "Polyvolt.", "ASPT"), 
@@ -69,8 +164,8 @@ graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
     data_graph<-dataI2M2%>%subset(CODE_PAR%in%param$CdParametre)
     data_graph<-left_join(data_graph, param, by=c("CODE_PAR"="CdParametre"))
     data_graph$DATE<-as.Date(data_graph$DATE, format="%d/%m/%Y")
-    lbl_dates<-unique(paste(data_graph$CODE_STATION, format(data_graph$DATE, "%d/%m/%y")))
-    data_graph$lbl_date<-factor(paste(data_graph$CODE_STATION, format(data_graph$DATE, "%d/%m/%y")), 
+    lbl_dates<-unique(paste(data_graph$CODE_STATION, "-", format(data_graph$DATE, "%d/%m/%y")))
+    data_graph$lbl_date<-factor(paste(data_graph$CODE_STATION, "-", format(data_graph$DATE, "%d/%m/%y")), 
                                 labels=lbl_dates,
                                 ordered=TRUE) 
     
@@ -85,7 +180,7 @@ graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
   
  # graph IBGN
 
-  if(type=="IBGN"){
+  else if(type=="IBGN"){
     param<-data.frame(CdParametre=c( "5910", "6035", "6034"),
                       NomParametre=factor(c("IBG eq.", "GFI IBG", "Var. taxo. IBG"), 
                                           levels=c("IBG eq.", "GFI IBG", "Var. taxo. IBG"), 
@@ -99,8 +194,8 @@ graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
     data_graph<-dataIBG%>%subset(CODE_PAR%in%param$CdParametre)
     data_graph<-left_join(data_graph, param, by=c("CODE_PAR"="CdParametre"))
     data_graph$DATE<-as.Date(data_graph$DATE, format="%d/%m/%Y")
-    lbl_dates<-unique(paste(data_graph$CODE_STATION, format(data_graph$DATE, "%d/%m/%y")))
-    data_graph$lbl_date<-factor(paste(data_graph$CODE_STATION, format(data_graph$DATE, "%d/%m/%y")), 
+    lbl_dates<-unique(paste(data_graph$CODE_STATION, "-", format(data_graph$DATE, "%d/%m/%y")))
+    data_graph$lbl_date<-factor(paste(data_graph$CODE_STATION, "-", format(data_graph$DATE, "%d/%m/%y")), 
                                 labels=lbl_dates,
                                 ordered=TRUE) 
     # graph IBG
@@ -137,7 +232,7 @@ graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
   
   
   # graph diag radar
-  if(type=="RADAR"){  
+  else if(type=="RADAR"){  
   detail_outil_diag_inv<-dataOD
   detail_outil_diag_inv$DATE<-as.Date(detail_outil_diag_inv$DATE, format("%d/%m/%Y"))
   
@@ -199,18 +294,10 @@ graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
   
   data_graph_all$pression<-gsub("proba_","", data_graph_all$pression)
   
-  
-  #traitement de chaque station
-  # station_a_traiter<- unique(data_graph_all$CODE_STATION)[2]
-  
-  data_graph<-data_graph_all%>%
-    subset(CODE_STATION==station_a_traiter)
-  
-  
-  lbl_dates<-format(unique(data_graph$DATE), "%d/%m/%y")
-  data_graph$DATE<-as.Date(data_graph$DATE, format="%d/%m/%Y")
-  lbl_dates<-unique(paste(data_graph$CODE_STATION, format(data_graph$DATE, "%d/%m/%y")))
-  data_graph$lbl_date<-factor(paste(data_graph$CODE_STATION, format(data_graph$DATE, "%d/%m/%y")), 
+  lbl_dates<-format(unique(data_graph_all$DATE), "%d/%m/%y")
+  data_graph_all$DATE<-as.Date(data_graph_all$DATE, format="%d/%m/%Y")
+  lbl_dates<-unique(paste(data_graph_all$CODE_STATION, "-", format(data_graph_all$DATE, "%d/%m/%y")))
+  data_graph_all$lbl_date<-factor(paste(data_graph_all$CODE_STATION, "-", format(data_graph_all$DATE, "%d/%m/%y")), 
                               labels=lbl_dates,
                               ordered=TRUE) 
   
@@ -218,15 +305,30 @@ graphInv<-function(type, BE=TRUE, TBE=TRUE, dataI2M2, dataIBGN, dataOD){
   
   
   # table(data_graph$pression,data_graph$proba)
-  graph<-ggplot(data_graph, aes(lbl_date, pression))+ 
+  graph<-ggplot(data_graph_all, aes(lbl_date, pression))+ 
     geom_tile(aes(fill = proba)) + 
     scale_fill_manual(values=c("Faible"="blue", "Modérée"="yellow", "Forte"="red"))+
     xlab("") + ylab("") + ggtitle("Probabilité d'altération de l'I2M2")
 
   }
-# autres graphs  
+# autres graphs de type traits écologiques
+  else {
+    # on charge les données de référence
+    ref_I2M2_BE<-ref_OD%>%subset(CODE_OPERATION%in%oper_a_garder_BE)
+    ref_I2M2_TBE<-ref_OD%>%subset(CODE_OPERATION%in%oper_a_garder_TBE)
+
+# on trace le graph du trait
+    graph<-graph_trait(data_graph=dataOD,
+                  trait=type,
+                data_BE=ref_I2M2_BE,
+                  data_TBE=ref_I2M2_TBE
+                )
   
-    return(graph)
+  }
+  
+ 
+  
+return(graph)
 }
 
 
@@ -403,9 +505,9 @@ server <- function(input, output, session) {
 #####Server : onglet graph  #####
   
   # variable réactive pour enregistrer les résultats SEEE des opérations sélectionnées
-  values_operations<-reactiveValues(OD=NULL,
-                                    I2M2=NULL,
-                                    IBG=NULL)
+  values_operations<-reactiveValues(OD=data.frame(),
+                                    I2M2=data.frame(),
+                                    IBG=data.frame())
   
   
   # quand le bouton submit_operations est pressé, on appelle le SEEE pour calculer les métriques des opérations sélectionnées 

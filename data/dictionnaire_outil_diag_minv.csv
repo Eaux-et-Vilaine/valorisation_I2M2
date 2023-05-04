@@ -1,0 +1,107 @@
+CODE_TAXON;LEGENDE
+TAILLE_1;< 0.5 cm
+TAILLE_2;> 0.5-1 cm
+TAILLE_3;> 1-2 cm
+TAILLE_4;> 2-4 cm
+TAILLE_5;> 4 cm
+LONGEVITE_1;< 1 an
+LONGEVITE_2;> 1 an
+VOLTINISME_1;< 1
+VOLTINISME_2;1
+VOLTINISME_3;> 1
+STADE_AQUATIQUE_1;oeuf
+STADE_AQUATIQUE_2;larve
+STADE_AQUATIQUE_3;nymphe
+STADE_AQUATIQUE_4;adulte
+REPRODUCTION_1;ovovivipare
+REPRODUCTION_2;oeufs isolés, libres
+REPRODUCTION_3;isolated eggs, fixés
+REPRODUCTION_4;pontes, cimentées ou fixées
+REPRODUCTION_5;pontes libres
+REPRODUCTION_6;pontes terrestres ou dans la végétation
+REPRODUCTION_7;reproduction assexuée
+DISPERSION_1;passive, aquatique
+DISPERSION_2;active, aquatique
+DISPERSION_3;passive, aérienne
+DISPERSION_4;active, aérienne
+RESISTANCE_1;oeufs, statoblastes
+RESISTANCE_2;cocons
+RESISTANCE_3;diapause ou quiescence
+RESISTANCE_4;aucune
+RESPIRATION_1;tégument
+RESPIRATION_2;branchies
+RESPIRATION_3;plastron, spiracle
+LOCOMOTION_1;vol
+LOCOMOTION_2;nageur
+LOCOMOTION_3;rampant
+LOCOMOTION_4;fouisseur
+LOCOMOTION_5;endobenthique (interstitiel)
+LOCOMOTION_6;fixation
+NOURRITURE_1;sédiments fins (< 1mm) + microorganismes
+NOURRITURE_2;débrits végétaux (>= 1mm)
+NOURRITURE_3;microphytes vivants
+NOURRITURE_4;macrophytes vivants
+NOURRITURE_5;animaux morts (>= 1mm)
+NOURRITURE_6;microinvertébrés vivants
+NOURRITURE_7;macroinvertébrés vivants
+ALIMENTATION_1;absorbeurs, mangeurs de sédiments fins
+ALIMENTATION_2;broyeur
+ALIMENTATION_3;racleur, brouteur
+ALIMENTATION_4;filtreur
+ALIMENTATION_5;perceur
+ALIMENTATION_6;prédateur
+ALIMENTATION_7;parasite
+TRANSVERSAL_1;chenal de rivière
+TRANSVERSAL_2;rives, chenaux secondaires
+TRANSVERSAL_3;étangs, mares, méandres abandonnés
+TRANSVERSAL_4;marais, tourbières
+TRANSVERSAL_5;eaux temporaires
+TRANSVERSAL_6;lacs
+LONGITUDINAL_1;crénon
+LONGITUDINAL_2;épirithron
+LONGITUDINAL_3;métarithron
+LONGITUDINAL_4;hyporithron
+LONGITUDINAL_5;épipotamon
+LONGITUDINAL_6;métapotamon
+LONGITUDINAL_7;estuaire
+LONGITUDINAL_8;hors hydrosystème fluvial
+ALTITUDE_1;plaine (<1000m)
+ALTITUDE_2;montagnard (1000-2000m)
+ALTITUDE_3;alpin (>2000m)
+SUBSTRAT_1;dalles, blocs, pierres, galets
+SUBSTRAT_2;graviers
+SUBSTRAT_3;sable
+SUBSTRAT_4;limons
+SUBSTRAT_5;macrophytes, algues filamenteuses
+SUBSTRAT_6;microphytes
+SUBSTRAT_7;branches, racines
+SUBSTRAT_8;litière
+SUBSTRAT_9;vase
+COURANT_1;nul
+COURANT_2;lent (< 25 cm/s)
+COURANT_3;moyen (25-50 cm</s)
+COURANT_4;rapide (> 50 cm/s)
+TROPHIE_1;oligotrophe
+TROPHIE_2;mesotrophe
+TROPHIE_3;eutrophe
+SALINITE_1;eau douce
+SALINITE_2;eau saumatre
+TEMPERATURE_1;cold (< 15°C)
+TEMPERATURE_2;warm (> 15°C)
+TEMPERATURE_3;eurythermic
+SAPROBIE_1;xénosaprobe
+SAPROBIE_2;oligosaprobe
+SAPROBIE_3;béta-mésosaprobe
+SAPROBIE_4;alpha-mésosaprobe
+SAPROBIE_5;polysaprobe
+PH_1;< 4
+PH_2;> 4-4.5
+PH_3;> 4.5-5
+PH_4;> 5-5.5
+PH_5;> 5.5-6
+PH_6;> 6
+GROUPE_1;GROUPE_BIO
+GROUPE_2;GROUPE_ECO
+GROUPE_3;GROUPE_BIOECO
+SPEAR_1;SPEAR_SENSIBILITE
+SPEAR_2;SPEAR_CLASSE
