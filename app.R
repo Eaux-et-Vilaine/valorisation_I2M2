@@ -2,7 +2,7 @@ library(shiny)
 library(DT)
 library(devtools)
 # ligne à exécuter seulement la première fois, peut être commentée après.
-install_github("https://github.com/AnthonyDEBUR/tools4DCE")
+# install_github("https://github.com/AnthonyDEBUR/tools4DCE")
 library(tools4DCE)
 library(shinybusy)
 library(cowplot)
@@ -418,6 +418,9 @@ ui <- navbarPage(
     # Titre de la section
     h2("Charger les données des stations de référence"),
     
+ #   leafletOutput(outputId = "carto_rrp"),
+    
+    
     # Texte d'information
     p(
       "Ce bouton permet de télécharger les données au niveau des stations de référence sur l'hydroécorégion massif armoricain avec l'API HUBEAU. "
@@ -542,6 +545,10 @@ server <- function(input, output, session) {
   )
   
 ##### Server : Chargement des données aux stations de référence #####    
+  
+  
+  
+  
   # Réaction au clic sur le bouton "download_refs"
   observeEvent(input$download_refs, {
     show_modal_progress_line() #indicateur de chargement
